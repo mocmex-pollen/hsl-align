@@ -12,29 +12,52 @@
   ^-  wall
   ::
   =/  rows=(list wall)  (turn lines parse-row)
-  =/  column-widths=(list @ud)  (roll (turn rows |=([r=wall] (turn r lent))) pairwise-max)
+  =/  max-widths=(list @ud)  (roll (turn rows |=([r=wall] (turn r lent))) pairwise-max)
   %+  turn
     rows
   |=  [columns=wall]
   ^-  tape
+  =/  column-widths=(list @ud)  (final-widths (scag (lent columns) max-widths) mode columns)
   %-  zing
   |-
   ?~  columns  ~
   ?~  column-widths  !!
-  ::  Adding an extra space to each column ensures words are always seperated,
-  ::  but this would also add trailing whitespace to the final column in left
-  ::  and center alignment modes, so we don't do it then.
-  ::
-  =/  final-width
-  ?:  &(=(~ t.columns) !=(mode %right))
-    i.column-widths
-  (add 1 i.column-widths)
-  ::
-  :-  (align:titling mode final-width i.columns) 
+  :-  (align:titling mode i.column-widths i.columns) 
   $(columns t.columns, column-widths t.column-widths)
 --
 ::
 |%
+::  +final-widths: ensure words in adjacent columns are separated without
+::  adding extra leading and trailing whitespaces to rows
+::
+::    %left - increments of all but the last; the last is the width
+::    of the contents of the column
+::    %center - increments of all but the first and the last
+::    %right - increments of all but the first
+::
+++  final-widths
+  |=  [column-widths=(list @ud) mode=?(%left %center %right) columns=wall]
+  ^-  (list @ud)
+  ::
+  =/  increment  |=(a=@ud +(a))
+  ?~  column-widths  ~
+  ?-  mode
+    %left    (turn-but-tail column-widths increment |=(a=@ud (lent (rear columns))))
+    %center  [i.column-widths (turn-but-tail t.column-widths increment |=(a=@ud a))]
+    %right   [i.column-widths (turn t.column-widths increment)]
+  ==
+::  +turn-but-tail: produce a list with a gate applied to each element
+::  except the last
+::
+++  turn-but-tail
+  |=  [l=(list @ud) transform=$-(@ud @ud) tail-transform=$-(@ud @ud)]
+  ^-  (list @ud)
+  ::
+  ?~  l  ~
+  |-
+  ?~  t.l
+    ~[(tail-transform i.l)]
+  [(transform i.l) $(l t.l)]
 ::  +parse-row: split tape into a list of tapes on the delimiter buc
 ::
 ::    Trailing empty columns are discarded.
