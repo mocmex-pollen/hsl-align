@@ -23,7 +23,8 @@
   |=  [columns=wall]
   ^-  tape
   %-  zing
-  ::  align contents, interleave with aces, and remove trailing whitespace
+  ::  Align contents, interleave with aces, and remove trailing whitespace from
+  ::  the last column.
   ::  ex: ~["Given" " " "a" " " "text"]
   ::
   |-
