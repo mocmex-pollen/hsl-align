@@ -6,6 +6,11 @@
 =<
 ::
 |%
+::  +columnify: produce a list of lines where buc-delimited text from the input
+::  lines has been transformed to spaced columns with contents aligned by the
+::  given mode
+::
+::    Trailing whitespace is trimmed.
 ::
 ++  columnify
   |=  [mode=?(%left %center %right) lines=wall]
@@ -17,47 +22,22 @@
     rows
   |=  [columns=wall]
   ^-  tape
-  =/  column-widths=(list @ud)  (final-widths (scag (lent columns) max-widths) mode columns)
   %-  zing
+  ::  align contents, interleave with aces, and remove trailing whitespace
+  ::  ex: ~["Given" " " "a" " " "text"]
+  ::
   |-
-  ?~  columns  ~
-  ?~  column-widths  !!
-  :-  (align:titling mode i.column-widths i.columns) 
-  $(columns t.columns, column-widths t.column-widths)
+  ?~  max-widths  !!
+  ?~  columns  !!
+  =/  contents=tape  (align:titling mode i.max-widths i.columns)
+  ?~  t.columns  
+    ~[(chomp-aces contents)]
+  :+  contents
+    " "
+  $(columns t.columns, max-widths t.max-widths)
 --
 ::
 |%
-::  +final-widths: ensure words in adjacent columns are separated without
-::  adding extra leading and trailing whitespaces to rows
-::
-::    %left - increments of all but the last; the last is the width
-::    of the contents of the column
-::    %center - increments of all but the first and the last
-::    %right - increments of all but the first
-::
-++  final-widths
-  |=  [column-widths=(list @ud) mode=?(%left %center %right) columns=wall]
-  ^-  (list @ud)
-  ::
-  =/  increment  |=(a=@ud +(a))
-  ?~  column-widths  ~
-  ?-  mode
-    %left    (turn-but-tail column-widths increment |=(a=@ud (lent (rear columns))))
-    %center  [i.column-widths (turn-but-tail t.column-widths increment |=(a=@ud a))]
-    %right   [i.column-widths (turn t.column-widths increment)]
-  ==
-::  +turn-but-tail: produce a list with a gate applied to each element
-::  except the last
-::
-++  turn-but-tail
-  |=  [l=(list @ud) transform=$-(@ud @ud) tail-transform=$-(@ud @ud)]
-  ^-  (list @ud)
-  ::
-  ?~  l  ~
-  |-
-  ?~  t.l
-    ~[(tail-transform i.l)]
-  [(transform i.l) $(l t.l)]
 ::  +parse-row: split tape into a list of tapes on the delimiter buc
 ::
 ::    Trailing empty columns are discarded.
@@ -87,8 +67,21 @@
   ?~  columns
     ~
   ?~  i.columns
-    t.columns
+    $(columns t.columns)
   columns
+::  +chomp-aces: remove all aces from the end of a tape
+::
+++  chomp-aces
+  |=  [text=tape]
+  ^-  tape
+  ::
+  =/  text  (flop text)
+  |-
+  ?~  text
+    ~
+  ?:  =(' ' i.text)
+    $(text t.text)
+  (flop text)
 ::  +pairwise-max: produce a list of the max value of corresponding elements
 ::  of two lists
 ::
